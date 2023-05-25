@@ -1,0 +1,24 @@
+Do +/- for the opposite side
+
+Shoulder
+-50
+
+Lower Arm
+30
+
+Hips
+5
+
+If your feet aren't touching 
+the ground all the way you can 
+click the middle hip sphere
+in between where I move the hips 
+by 5 degrees. There should only be 1 sphere, 
+not 1 for each side. Click on it. Then toward the 
+top directly underneath "Delete Pose" click on the symbol 
+to the right of the mouse icon. You should be able to move the 
+hips up/down now. Any mistakes you make you want to undo just press
+Ctrl+Z. 
+
+
+
