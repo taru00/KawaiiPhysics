@@ -35,6 +35,7 @@ enum class ECollisionLimitType : uint8
 	None,
 	Spherical,
 	Capsule,
+	TaperedCapsule,
 	Planar,
 };
 
@@ -113,6 +114,31 @@ struct FCapsuleLimit : public FCollisionLimitBase
 
 	UPROPERTY(EditAnywhere, Category = CapsuleLimit, meta = (ClampMin = "0"))
 	float Length = 10.0f;
+};
+
+USTRUCT()
+struct FTaperedCapsuleLimit : public FCollisionLimitBase
+{
+	GENERATED_BODY();
+
+	FTaperedCapsuleLimit()
+	{
+#if WITH_EDITORONLY_DATA
+		Type = ECollisionLimitType::TaperedCapsule;
+#endif
+	}		
+
+	UPROPERTY(EditAnywhere, Category = CapsuleLimit, meta = (ClampMin = "0"))
+		float Length = 10.0f;
+	
+	FVector StartPos = FVector::ZeroVector;
+	FVector EndPos = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+		float StartRadius;
+	
+	UPROPERTY(EditAnywhere, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+		float EndRadius;
 };
 
 USTRUCT()

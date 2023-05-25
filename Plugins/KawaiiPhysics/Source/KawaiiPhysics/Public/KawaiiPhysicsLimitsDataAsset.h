@@ -120,6 +120,48 @@ struct FCapsuleLimitData : public FCollisionLimitDataBase
 	}
 };
 
+
+USTRUCT(BlueprintType)
+struct FTaperedCapsuleLimitData : public FCollisionLimitDataBase
+{
+	GENERATED_BODY();
+
+	
+	FVector StartPos = FVector::ZeroVector;
+	FVector EndPos = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+		float StartRadius = 5.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+		float EndRadius = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+		float Length = 10.0f;
+
+	void Update(const FTaperedCapsuleLimit* Limit)
+	{
+		UpdateBase(Limit);		
+		StartPos = Limit->StartPos;
+		EndPos = Limit->EndPos;
+		StartRadius = Limit->StartRadius;
+		EndRadius = Limit->EndRadius;
+		Length = Limit->Length;
+	}
+
+	FTaperedCapsuleLimit Convert() const
+	{
+		FTaperedCapsuleLimit Limit;
+		ConvertBase(Limit);	
+		Limit.StartPos = StartPos;
+		Limit.EndPos = EndPos;
+		Limit.StartRadius = StartRadius;
+		Limit.EndRadius = EndRadius;
+
+		return Limit;
+	}
+};
+
+
 USTRUCT(BlueprintType)
 struct FPlanarLimitData : public FCollisionLimitDataBase
 {
@@ -160,6 +202,8 @@ public:
 	TArray< FSphericalLimitData> SphericalLimitsData;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capsule Limits")
 	TArray< FCapsuleLimitData> CapsuleLimitsData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tapered Capsule Limits")
+	TArray< FTaperedCapsuleLimitData> TaperedCapsuleLimitsData;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planar Limits")
 	TArray< FPlanarLimitData> PlanarLimitsData;
 
@@ -176,6 +220,8 @@ public:
 	TArray< FSphericalLimit> SphericalLimits;
 	UPROPERTY()
 	TArray< FCapsuleLimit> CapsuleLimits;
+	UPROPERTY()
+	TArray< FTaperedCapsuleLimit> TaperedCapsuleLimits;
 	UPROPERTY()
 	TArray< FPlanarLimit> PlanarLimits;
 

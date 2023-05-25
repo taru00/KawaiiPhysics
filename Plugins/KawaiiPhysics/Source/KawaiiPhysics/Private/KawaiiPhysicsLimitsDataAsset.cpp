@@ -34,6 +34,18 @@ void UKawaiiPhysicsLimitsDataAsset::UpdateLimit(FCollisionLimitBase* Limit)
 			}
 
 		break;
+		case ECollisionLimitType::TaperedCapsule:
+
+			for (FTaperedCapsuleLimitData& LimitData : TaperedCapsuleLimitsData)
+			{
+				if (LimitData.Guid == Limit->Guid)
+				{
+					LimitData.Update(static_cast<FTaperedCapsuleLimit*>(Limit));
+					break;
+				}
+			}
+
+		break;
 		case ECollisionLimitType::Planar:
 
 			for (FPlanarLimitData& LimitData : PlanarLimitsData)
@@ -106,6 +118,7 @@ void UKawaiiPhysicsLimitsDataAsset::PostEditChangeProperty(struct FPropertyChang
 
 	Sync();
 }
+
 
 
 #endif
