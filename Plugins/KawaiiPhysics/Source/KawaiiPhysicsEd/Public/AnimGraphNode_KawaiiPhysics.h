@@ -28,6 +28,8 @@ class UAnimGraphNode_KawaiiPhysics : public UAnimGraphNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, Category = Debug)
 	bool bEnableDebugDrawCapsuleLimit = true;
 	UPROPERTY(EditAnywhere, Category = Debug)
+	bool bEnableDebugDrawTaperedCapsuleLimit = true;	
+	UPROPERTY(EditAnywhere, Category = Debug)
 	bool bEnableDebugDrawPlanerLimit = true;
 
 public:

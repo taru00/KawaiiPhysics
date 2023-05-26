@@ -157,6 +157,7 @@ void UAnimGraphNode_KawaiiPhysics::CopyNodeDataToPreviewNode(FAnimNode_Base* Ani
 	// Limits
 	KawaiiPhysics->SphericalLimits = Node.SphericalLimits;
 	KawaiiPhysics->CapsuleLimits = Node.CapsuleLimits;
+	KawaiiPhysics->TaperedCapsuleLimits = Node.TaperedCapsuleLimits;
 	KawaiiPhysics->PlanarLimits = Node.PlanarLimits;
 	KawaiiPhysics->LimitsDataAsset = Node.LimitsDataAsset;
 

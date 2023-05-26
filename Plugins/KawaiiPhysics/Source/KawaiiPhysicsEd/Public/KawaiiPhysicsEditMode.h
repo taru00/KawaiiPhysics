@@ -54,6 +54,7 @@ private:
 	/** Render each collisions */
 	void RenderSphericalLimits(FPrimitiveDrawInterface* PDI) const;
 	void RenderCapsuleLimit(FPrimitiveDrawInterface* PDI) const;
+	void RenderTaperedCapsuleLimit(FPrimitiveDrawInterface* PDI) const;
 	void RenderPlanerLimit(FPrimitiveDrawInterface* PDI);
 
 	/** Helper function for GetWidgetLocation() and joint rendering */

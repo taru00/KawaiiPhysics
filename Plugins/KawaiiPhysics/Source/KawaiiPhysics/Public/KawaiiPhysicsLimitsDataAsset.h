@@ -126,36 +126,44 @@ struct FTaperedCapsuleLimitData : public FCollisionLimitDataBase
 {
 	GENERATED_BODY();
 
-	
-	FVector StartPos = FVector::ZeroVector;
-	FVector EndPos = FVector::ZeroVector;
+	//FVector StartPos = FVector::ZeroVector;
+	//FVector EndPos = FVector::ZeroVector;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "1"))
 		float StartRadius = 5.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "1"))
 		float EndRadius = 5.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TaperedCapsuleLimit, meta = (ClampMin = "1"))
 		float Length = 10.0f;
 
 	void Update(const FTaperedCapsuleLimit* Limit)
 	{
+		// Limit >> EditorData
 		UpdateBase(Limit);		
-		StartPos = Limit->StartPos;
-		EndPos = Limit->EndPos;
+
+		//Limit->StartPos = OffsetLocation;
+		//FVector UpDirection = Limit->OffsetRotation.RotateVector(FVector::UpVector);
+		//Limit->EndPos = OffsetLocation + UpDirection * Length;
+
 		StartRadius = Limit->StartRadius;
 		EndRadius = Limit->EndRadius;
 		Length = Limit->Length;
+
 	}
 
 	FTaperedCapsuleLimit Convert() const
 	{
+		// EditorData >> Limit
 		FTaperedCapsuleLimit Limit;
 		ConvertBase(Limit);	
-		Limit.StartPos = StartPos;
-		Limit.EndPos = EndPos;
+		
 		Limit.StartRadius = StartRadius;
 		Limit.EndRadius = EndRadius;
+		Limit.Length = Length;
+
+
+
+		Limit.Init();
 
 		return Limit;
 	}
@@ -201,7 +209,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spherical Limits")
 	TArray< FSphericalLimitData> SphericalLimitsData;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capsule Limits")
-	TArray< FCapsuleLimitData> CapsuleLimitsData;
+	TArray< FCapsuleLimitData> CapsuleLimitsData;	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tapered Capsule Limits")
 	TArray< FTaperedCapsuleLimitData> TaperedCapsuleLimitsData;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planar Limits")

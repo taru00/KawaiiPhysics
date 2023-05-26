@@ -127,6 +127,8 @@ void FAnimNode_KawaiiPhysics::EvaluateSkeletalControl_AnyThread(FComponentSpaceP
 	UpdateSphericalLimits(SphericalLimitsData, Output, BoneContainer, ComponentTransform);
 	UpdateCapsuleLimits(CapsuleLimits, Output, BoneContainer, ComponentTransform);
 	UpdateCapsuleLimits(CapsuleLimitsData, Output, BoneContainer, ComponentTransform);
+	UpdateTaperedCapsuleLimits(TaperedCapsuleLimits, Output, BoneContainer, ComponentTransform);
+	UpdateTaperedCapsuleLimits(TaperedCapsuleLimitsData, Output, BoneContainer, ComponentTransform);
 	UpdatePlanerLimits(PlanarLimits,Output, BoneContainer, ComponentTransform);
 	UpdatePlanerLimits(PlanarLimitsData, Output, BoneContainer, ComponentTransform);
 	for (auto& Bone : ModifyBones)
@@ -189,6 +191,10 @@ void FAnimNode_KawaiiPhysics::InitializeBoneReferences(const FBoneContainer& Req
 	{
 		Capsule.DrivingBone.Initialize(RequiredBones);
 	}
+	for (auto& TaperedCapsule : TaperedCapsuleLimits)
+	{
+		TaperedCapsule.DrivingBone.Initialize(RequiredBones);
+	}
 	for (auto& Planer : PlanarLimits)
 	{
 		Planer.DrivingBone.Initialize(RequiredBones);
@@ -223,11 +229,13 @@ void FAnimNode_KawaiiPhysics::ApplyLimitsDataAsset(const FBoneContainer& Require
 {
 	SphericalLimitsData.Empty();
 	CapsuleLimitsData.Empty();
+	TaperedCapsuleLimitsData.Empty();
 	PlanarLimitsData.Empty();
 	if (LimitsDataAsset)
 	{
 		SphericalLimitsData = LimitsDataAsset->SphericalLimits;
 		CapsuleLimitsData = LimitsDataAsset->CapsuleLimits;
+		TaperedCapsuleLimitsData = LimitsDataAsset->TaperedCapsuleLimits;
 		PlanarLimitsData = LimitsDataAsset->PlanarLimits;
 	}
 
@@ -235,10 +243,13 @@ void FAnimNode_KawaiiPhysics::ApplyLimitsDataAsset(const FBoneContainer& Require
 	{
 		Sphere.DrivingBone.Initialize(RequiredBones);
 	}
-
 	for (auto& Capsule : CapsuleLimitsData)
 	{
 		Capsule.DrivingBone.Initialize(RequiredBones);
+	}
+	for (auto& TaperedCapsule : TaperedCapsuleLimitsData)
+	{
+		TaperedCapsule.DrivingBone.Initialize(RequiredBones);
 	}
 	for (auto& Planer : PlanarLimitsData)
 	{
@@ -478,6 +489,45 @@ void FAnimNode_KawaiiPhysics::UpdateCapsuleLimits(TArray<FCapsuleLimit>& Limits,
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("KawaiiPhysics_UpdateTaperedCapsuleLimit"), STAT_KawaiiPhysics_UpdateTaperedCapsuleLimit, STATGROUP_Anim);
+
+void FAnimNode_KawaiiPhysics::UpdateTaperedCapsuleLimits(TArray<FTaperedCapsuleLimit>& Limits, FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, const FTransform& ComponentTransform)
+{
+	for (auto& TaperedCapsule : Limits)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_KawaiiPhysics_UpdateTaperedCapsuleLimit);
+
+		if (TaperedCapsule.DrivingBone.BoneIndex >= 0)
+		{
+			const FCompactPoseBoneIndex CompactPoseIndex = TaperedCapsule.DrivingBone.GetCompactPoseIndex(BoneContainer);
+			FTransform BoneTransform = Output.Pose.GetComponentSpaceTransform(CompactPoseIndex);
+
+			FAnimationRuntime::ConvertCSTransformToBoneSpace(ComponentTransform, Output.Pose, BoneTransform, CompactPoseIndex, BCS_BoneSpace);
+			BoneTransform.SetRotation(TaperedCapsule.OffsetRotation.Quaternion() * BoneTransform.GetRotation());
+			BoneTransform.AddToTranslation(TaperedCapsule.OffsetLocation);
+
+			FAnimationRuntime::ConvertBoneSpaceTransformToCS(ComponentTransform, Output.Pose, BoneTransform, CompactPoseIndex, BCS_BoneSpace);
+
+			
+
+
+			TaperedCapsule.UpdateTransform(BoneTransform);
+			
+
+			//	hclTaperedCapsuleShape* transformedShape = new (&buffer) hclTaperedCapsuleShape(smallCtr, bigCtr, m_smallRadius, m_bigRadius);
+
+
+
+
+		}
+		else
+		{
+			TaperedCapsule.Location = TaperedCapsule.OffsetLocation;
+			TaperedCapsule.Rotation = TaperedCapsule.OffsetRotation.Quaternion();
+		}
+	}
+}
+
 DECLARE_CYCLE_STAT(TEXT("KawaiiPhysics_UpdatePlanerLimit"), STAT_KawaiiPhysics_UpdatePlanerLimit, STATGROUP_Anim);
 
 void FAnimNode_KawaiiPhysics::UpdatePlanerLimits(TArray<FPlanarLimit>& Limits, FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, const FTransform& ComponentTransform)
@@ -614,6 +664,8 @@ void FAnimNode_KawaiiPhysics::SimulateModifyBones(FComponentSpacePoseContext& Ou
 			AdjustBySphereCollision(Bone, SphericalLimitsData);
 			AdjustByCapsuleCollision(Bone, CapsuleLimits);
 			AdjustByCapsuleCollision(Bone, CapsuleLimitsData);
+			AdjustByTaperedCapsuleCollision(Bone, TaperedCapsuleLimits);
+			AdjustByTaperedCapsuleCollision(Bone, TaperedCapsuleLimitsData);
 			AdjustByPlanerCollision(Bone, PlanarLimits);
 			AdjustByPlanerCollision(Bone, PlanarLimitsData);
 			if (bAllowWorldCollision)
@@ -801,6 +853,41 @@ void FAnimNode_KawaiiPhysics::AdjustByCapsuleCollision(FKawaiiPhysicsModifyBone&
 	}
 }
 
+void FAnimNode_KawaiiPhysics::AdjustByTaperedCapsuleCollision(FKawaiiPhysicsModifyBone& Bone, TArray<FTaperedCapsuleLimit>& Limits)
+{
+	for (auto& TaperedCapsule : Limits)
+	{
+		if (TaperedCapsule.StartRadius <= 0 || TaperedCapsule.EndRadius <= 0 || TaperedCapsule.Length <= 0)
+		{
+			continue;
+		}
+
+		FVector StartPoint = TaperedCapsule.Location + TaperedCapsule.Rotation.GetAxisZ() * TaperedCapsule.Length * 0.5f;
+		FVector EndPoint = TaperedCapsule.Location + TaperedCapsule.Rotation.GetAxisZ() * TaperedCapsule.Length * -0.5f;
+		
+		//const float DistSquared = FMath::PointDistToSegmentSquared(Bone.Location, StartPoint, EndPoint);
+		FVector ContactPoint = FVector::ZeroVector;
+		FVector ContactNormal = FVector::ZeroVector;
+		float signedDist = 0.f;
+
+		TaperedCapsule.FindClosestPoint(Bone.Location, Bone.PhysicsSettings.Radius, ContactPoint, ContactNormal, signedDist);
+
+		const float LimitDistance = Bone.PhysicsSettings.Radius + TaperedCapsule.StartRadius;
+		if (TaperedCapsule.Distance < LimitDistance )
+		{
+			FVector ClosestPoint = FMath::ClosestPointOnSegment(Bone.Location, StartPoint, EndPoint);
+			Bone.Location = ClosestPoint + (Bone.Location - ClosestPoint).GetSafeNormal() * LimitDistance;
+		}
+		
+		if (TaperedCapsule.Distance < LimitDistance)
+		{
+			FVector ClosestPoint = FMath::ClosestPointOnSegment(Bone.Location, StartPoint, EndPoint);
+			Bone.Location = ClosestPoint + (Bone.Location - ClosestPoint).GetSafeNormal() * LimitDistance;
+		}
+		
+
+	}
+}
 void FAnimNode_KawaiiPhysics::AdjustByPlanerCollision(FKawaiiPhysicsModifyBone& Bone, TArray<FPlanarLimit>& Limits)
 {
 	for (auto& Planar : Limits)

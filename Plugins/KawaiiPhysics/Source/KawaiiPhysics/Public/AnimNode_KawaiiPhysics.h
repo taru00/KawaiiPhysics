@@ -59,6 +59,7 @@ struct FCollisionLimitBase
 
 	UPROPERTY()
 	FQuat Rotation = FQuat::Identity;
+	FTransform BoneTM = FTransform::Identity;
 
 #if WITH_EDITORONLY_DATA
 
@@ -130,15 +131,141 @@ struct FTaperedCapsuleLimit : public FCollisionLimitBase
 
 	UPROPERTY(EditAnywhere, Category = CapsuleLimit, meta = (ClampMin = "0"))
 		float Length = 10.0f;
-	
-	FVector StartPos = FVector::ZeroVector;
-	FVector EndPos = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
 		float StartRadius;
-	
+
 	UPROPERTY(EditAnywhere, Category = TaperedCapsuleLimit, meta = (ClampMin = "0"))
 		float EndRadius;
+
+
+	float Distance;
+	float diffRadius;
+	float H;
+	float SinTheta;
+	float BigRadius;
+	float SmallRadius;
+	FVector UpVector;
+	FVector UpDirection;
+	float Diagonal;
+	FVector ConeApex;
+	float W;
+	float TanTheta;
+	float TanThetaSqr;
+	float TanThetaVecNeg;
+	float CosTheta;
+
+	void Init()
+	{		
+		FVector BigPos = FVector::ZeroVector;
+		FVector SmallPos = FVector::ZeroVector;
+
+		if (StartRadius > EndRadius)
+		{
+			BigRadius = StartRadius;
+			SmallRadius = EndRadius;
+			BigPos = FVector::ZeroVector;
+			SmallPos = FVector(0.f, 0.f, Length);
+		}
+		else
+		{
+			BigPos = FVector(0.f, 0.f, Length);
+			SmallPos = FVector::ZeroVector;
+			BigRadius = StartRadius;
+			SmallRadius = EndRadius;
+		}
+
+		if ((BigRadius - SmallRadius) / BigRadius < 0.1f)
+		{
+			BigRadius += 0.1f;
+		}
+
+		UpVector = BigPos - SmallPos;
+		Distance = FVector::Distance(BigPos, SmallPos);
+
+		diffRadius = BigRadius - SmallRadius;
+		H = Distance * (Distance * Distance - diffRadius * diffRadius) / (diffRadius * Distance);
+		SinTheta = (BigRadius - SmallRadius) / Distance;
+
+		if (SinTheta > 1.0f)
+		{
+			// Invalid tapered capsule
+		}
+
+		Diagonal = SmallRadius / SinTheta;
+		ConeApex = (SmallRadius - Diagonal) * UpVector;
+		W = FMath::Sqrt(H * BigRadius * SinTheta);
+
+		TanTheta = W / H;
+		TanThetaSqr = TanTheta * TanTheta;
+		TanThetaVecNeg = -TanTheta;
+
+		CosTheta = H / FMath::Sqrt(W * W + H * H);
+	}
+
+	void UpdateTransform(const FTransform& BoneTransform)
+	{
+		Location = BoneTransform.GetLocation();
+		Rotation = BoneTransform.GetRotation();
+
+		// transformed quantities
+		//SmallPos = BoneTransform.TransformPosition(SmallPos);
+		//BigPos = BoneTransform.TransformPosition(BigPos);
+
+		UpDirection = BoneTransform.GetUnitAxis(EAxis::Z);
+		UpVector = UpDirection * Length;
+		//axis.setRotatedDir(transform.getRotation(), UpVector);
+		//ConeApex = (SmallRadius - Diagonal) * UpVector;
+			
+	}
+
+	void FindClosestPoint(const FVector& P, float particleRadius, FVector& pointOnSurface, FVector& normal, float& signedDistance) const
+	{
+		const FVector& V = ConeApex;
+		const FVector& lhat = UpVector;
+
+		float z;
+		FVector tmp;
+		//tmp.setSub4(P, V);
+		tmp = P - V;
+		//z = tmp.dot3(lhat);
+		z = FVector::DotProduct(tmp, lhat);
+
+		FVector xperp;
+		xperp = FVector::CrossProduct(tmp, lhat);
+		xperp = FVector::CrossProduct(lhat, xperp);
+		//xperp.setCross(tmp, lhat);
+		//xperp.setCross(lhat, xperp);
+		
+		float xperpmag = xperp.Length();
+		float coneband = float(Diagonal) - float(TanTheta) * xperpmag;
+
+		if (z <= coneband)
+		{
+			// Closest point is on small sphere
+			
+			//_getClosestPointToSphere(P, particleRadius, SmallRadius, SmallPos, pointOnSurface, normal, signedDistance);
+		}
+		else if (z >= float(Length) + coneband)
+		{
+			// Closest point is on big sphere
+			//_getClosestPointToSphere(P, particleRadius, BigRadius, BigPos, pointOnSurface, normal, signedDistance);
+		}
+		else
+		{
+			// Closest point is on cone
+			float sd = -(float(TanTheta) * z - xperpmag) * float(CosTheta);
+			signedDistance = sd;
+
+			FVector N;
+			N = CosTheta * xperp;
+			N = (N - SinTheta) * UpVector;
+			N.Normalize();
+
+			pointOnSurface = (P + N) * -sd;
+			normal = N;
+		}
+	}
 };
 
 USTRUCT()
@@ -333,6 +460,8 @@ public:
 	TArray< FSphericalLimit> SphericalLimits;
 	UPROPERTY(EditAnywhere, Category = "Capsule Limits")
 	TArray< FCapsuleLimit> CapsuleLimits;
+	UPROPERTY(EditAnywhere, Category = "TaperedCapsule Limits")
+	TArray< FTaperedCapsuleLimit> TaperedCapsuleLimits;
 	UPROPERTY(EditAnywhere, Category = "Planar Limits")
 	TArray< FPlanarLimit> PlanarLimits;
 
@@ -342,6 +471,8 @@ public:
 	TArray< FSphericalLimit> SphericalLimitsData;
 	UPROPERTY(VisibleAnywhere, AdvancedDisplay, Category = "Limits Data(Experimental)")
 	TArray< FCapsuleLimit> CapsuleLimitsData;
+	UPROPERTY(VisibleAnywhere, AdvancedDisplay, Category = "Limits Data(Experimental)")
+	TArray< FTaperedCapsuleLimit> TaperedCapsuleLimitsData;	
 	UPROPERTY(VisibleAnywhere, AdvancedDisplay, Category = "Limits Data(Experimental)")
 	TArray< FPlanarLimit> PlanarLimitsData;
 
@@ -469,12 +600,14 @@ private:
 	void UpdatePhysicsSettingsOfModifyBones();
 	void UpdateSphericalLimits(TArray<FSphericalLimit>& Limits, FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, const FTransform& ComponentTransform);
 	void UpdateCapsuleLimits(TArray<FCapsuleLimit>& Limits, FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, const FTransform& ComponentTransform);
+	void UpdateTaperedCapsuleLimits(TArray<FTaperedCapsuleLimit>& Limits, FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, const FTransform& ComponentTransform);
 	void UpdatePlanerLimits(TArray<FPlanarLimit>& Limits, FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, const FTransform& ComponentTransform);
 
 	void SimulateModifyBones(FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, FTransform& ComponentTransform);
 	void AdjustByWorldCollision(FKawaiiPhysicsModifyBone& Bone, const USkeletalMeshComponent* OwningComp, const FBoneContainer& BoneContainer);
 	void AdjustBySphereCollision(FKawaiiPhysicsModifyBone& Bone, TArray<FSphericalLimit>& Limits);
 	void AdjustByCapsuleCollision(FKawaiiPhysicsModifyBone& Bone, TArray<FCapsuleLimit>& Limits);
+	void AdjustByTaperedCapsuleCollision(FKawaiiPhysicsModifyBone& Bone, TArray<FTaperedCapsuleLimit>& Limits);
 	void AdjustByPlanerCollision(FKawaiiPhysicsModifyBone& Bone, TArray<FPlanarLimit>& Limits);
 	void AdjustByAngleLimit(FComponentSpacePoseContext& Output, const FBoneContainer& BoneContainer, FTransform& ComponentTransform, FKawaiiPhysicsModifyBone& Bone, const FKawaiiPhysicsModifyBone& ParentBone);
 	void AdjustByPlanarConstraint(FKawaiiPhysicsModifyBone& Bone, const FKawaiiPhysicsModifyBone& ParentBone);
