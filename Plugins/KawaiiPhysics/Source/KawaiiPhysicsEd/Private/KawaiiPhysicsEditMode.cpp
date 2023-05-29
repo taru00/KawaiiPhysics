@@ -226,11 +226,11 @@ void FKawaiiPhysicsEditMode::RenderTaperedCapsuleLimit(FPrimitiveDrawInterface* 
 				FVector ZAxis = TaperedCapsule.Rotation.GetAxisZ();
 
 				PDI->SetHitProxy(new HKawaiiPhysicsHitProxy(ECollisionLimitType::TaperedCapsule, i));				
-				DrawSphere(PDI, TaperedCapsule.Location + ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.StartRadius), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
-				DrawSphere(PDI, TaperedCapsule.Location - ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.EndRadius), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				//DrawSphere(PDI, TaperedCapsule.Location + ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.StartRadius), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				//DrawSphere(PDI, TaperedCapsule.Location - ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.EndRadius), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
 
-				//DrawSphere(PDI, TaperedCapsule.BigPos, TaperedCapsule.Rotation.Rotator(), FVector(7), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
-				//DrawSphere(PDI, TaperedCapsule.SmallPos, TaperedCapsule.Rotation.Rotator(), FVector(5), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				DrawSphere(PDI, TaperedCapsule.BigPosWS, TaperedCapsule.Rotation.Rotator(), FVector(7), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				DrawSphere(PDI, TaperedCapsule.SmallPosWS, TaperedCapsule.Rotation.Rotator(), FVector(5), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
 				//DrawDirectionalArrow(class FPrimitiveDrawInterface* PDI, const FMatrix & ArrowToWorld, const FLinearColor & InColor, float Length, float ArrowSize, uint8 DepthPriority, float Thickness = 0.0f);
 				
 				DrawFlatArrow(PDI, TaperedCapsule.Location, FVector::ForwardVector, FVector::RightVector, FColor::Blue, TaperedCapsule.Length, 5.f, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);

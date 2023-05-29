@@ -154,23 +154,25 @@ struct FTaperedCapsuleLimit : public FCollisionLimitBase
 	float TanThetaSqr;
 	float TanThetaVecNeg;
 	float CosTheta;
+	FVector BigPos = FVector::ZeroVector;
+	FVector SmallPos = FVector::ZeroVector;
+	FVector BigPosWS = FVector::ZeroVector;
+	FVector SmallPosWS = FVector::ZeroVector;
 
 	void Init()
 	{		
-		FVector BigPos = FVector::ZeroVector;
-		FVector SmallPos = FVector::ZeroVector;
-
+		float halfLen = Length / 2.f;
 		if (StartRadius > EndRadius)
 		{
 			BigRadius = StartRadius;
 			SmallRadius = EndRadius;
-			BigPos = FVector::ZeroVector;
-			SmallPos = FVector(0.f, 0.f, Length);
+			BigPos = FVector(0.f, 0.f, -halfLen);
+			SmallPos = FVector(0.f, 0.f, halfLen);
 		}
 		else
 		{
-			BigPos = FVector(0.f, 0.f, Length);
-			SmallPos = FVector::ZeroVector;
+			BigPos = FVector(0.f, 0.f, halfLen);
+			SmallPos = FVector(0.f, 0.f, -halfLen);
 			BigRadius = StartRadius;
 			SmallRadius = EndRadius;
 		}
@@ -209,8 +211,8 @@ struct FTaperedCapsuleLimit : public FCollisionLimitBase
 		Rotation = BoneTransform.GetRotation();
 
 		// transformed quantities
-		//SmallPos = BoneTransform.TransformPosition(SmallPos);
-		//BigPos = BoneTransform.TransformPosition(BigPos);
+		SmallPosWS = BoneTransform.TransformPosition(SmallPos);
+		BigPosWS = BoneTransform.TransformPosition(BigPos);
 
 		UpDirection = BoneTransform.GetUnitAxis(EAxis::Z);
 		UpVector = UpDirection * Length;
@@ -219,7 +221,19 @@ struct FTaperedCapsuleLimit : public FCollisionLimitBase
 			
 	}
 
-	void FindClosestPoint(const FVector& P, float particleRadius, FVector& pointOnSurface, FVector& normal, float& signedDistance) const
+	void FindClosestPointToSphere(const FVector& localPos, float sphereRadius, const FVector& spherePos, FVector& pointOnSphere, FVector& normal, float& signedDistance) const
+	{
+		FVector boneVector;
+		boneVector = localPos - spherePos;
+		
+		float distance = boneVector.Length();
+		pointOnSphere = (spherePos + boneVector) * sphereRadius;
+		normal = boneVector;
+		signedDistance = distance - sphereRadius;
+	}
+
+
+	void FindClosestPoint(const FVector& P, FVector& pointOnSurface, FVector& normal, float& signedDistance) const
 	{
 		const FVector& V = ConeApex;
 		const FVector& lhat = UpVector;
@@ -238,22 +252,21 @@ struct FTaperedCapsuleLimit : public FCollisionLimitBase
 		//xperp.setCross(lhat, xperp);
 		
 		float xperpmag = xperp.Length();
-		float coneband = float(Diagonal) - float(TanTheta) * xperpmag;
+		float coneband = Diagonal - TanTheta * xperpmag;
 
 		if (z <= coneband)
 		{
-			// Closest point is on small sphere
-			
-			//_getClosestPointToSphere(P, particleRadius, SmallRadius, SmallPos, pointOnSurface, normal, signedDistance);
+			// Contact point is on Small Sphere
+			FindClosestPointToSphere(P, SmallRadius, SmallPosWS, pointOnSurface, normal, signedDistance);
 		}
 		else if (z >= float(Length) + coneband)
 		{
-			// Closest point is on big sphere
-			//_getClosestPointToSphere(P, particleRadius, BigRadius, BigPos, pointOnSurface, normal, signedDistance);
+			// Contact point is on Big Sphere
+			FindClosestPointToSphere(P, BigRadius, BigPosWS, pointOnSurface, normal, signedDistance);
 		}
 		else
 		{
-			// Closest point is on cone
+			// Contact point is on Chopped Cone
 			float sd = -(float(TanTheta) * z - xperpmag) * float(CosTheta);
 			signedDistance = sd;
 

@@ -148,7 +148,6 @@ struct FTaperedCapsuleLimitData : public FCollisionLimitDataBase
 		StartRadius = Limit->StartRadius;
 		EndRadius = Limit->EndRadius;
 		Length = Limit->Length;
-
 	}
 
 	FTaperedCapsuleLimit Convert() const
@@ -160,8 +159,6 @@ struct FTaperedCapsuleLimitData : public FCollisionLimitDataBase
 		Limit.StartRadius = StartRadius;
 		Limit.EndRadius = EndRadius;
 		Limit.Length = Length;
-
-
 
 		Limit.Init();
 
@@ -203,6 +200,7 @@ class KAWAIIPHYSICS_API UKawaiiPhysicsLimitsDataAsset : public UDataAsset
 	GENERATED_BODY()
 	
 public:
+
 
 #if WITH_EDITORONLY_DATA 
 

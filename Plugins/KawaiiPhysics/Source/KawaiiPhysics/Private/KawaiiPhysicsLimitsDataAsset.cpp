@@ -112,6 +112,7 @@ void UKawaiiPhysicsLimitsDataAsset::PostEditChangeProperty(struct FPropertyChang
 		if (PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
 		{
 			TaperedCapsuleLimitsData[PropertyChangedEvent.GetArrayIndex(PropertyName.ToString())].Guid = FGuid::NewGuid();
+
 		}
 	}
 	else if (PropertyName == FName(TEXT("CapsuleLimitsData")))

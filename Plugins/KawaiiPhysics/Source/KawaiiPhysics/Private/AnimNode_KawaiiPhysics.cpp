@@ -30,6 +30,11 @@ void FAnimNode_KawaiiPhysics::Initialize_AnyThread(const FAnimationInitializeCon
 
 	ApplyLimitsDataAsset(RequiredBones);
 
+	for (auto& TaperedCapsule : TaperedCapsuleLimits)
+	{		
+		TaperedCapsule.Init();
+	}
+
 	InitializeBoneReferences(RequiredBones);
 
 	ModifyBones.Empty();
@@ -194,6 +199,7 @@ void FAnimNode_KawaiiPhysics::InitializeBoneReferences(const FBoneContainer& Req
 	for (auto& TaperedCapsule : TaperedCapsuleLimits)
 	{
 		TaperedCapsule.DrivingBone.Initialize(RequiredBones);
+		//TaperedCapsule.Init();
 	}
 	for (auto& Planer : PlanarLimits)
 	{
@@ -250,6 +256,7 @@ void FAnimNode_KawaiiPhysics::ApplyLimitsDataAsset(const FBoneContainer& Require
 	for (auto& TaperedCapsule : TaperedCapsuleLimitsData)
 	{
 		TaperedCapsule.DrivingBone.Initialize(RequiredBones);
+		TaperedCapsule.Init();
 	}
 	for (auto& Planer : PlanarLimitsData)
 	{
@@ -865,27 +872,18 @@ void FAnimNode_KawaiiPhysics::AdjustByTaperedCapsuleCollision(FKawaiiPhysicsModi
 		FVector StartPoint = TaperedCapsule.Location + TaperedCapsule.Rotation.GetAxisZ() * TaperedCapsule.Length * 0.5f;
 		FVector EndPoint = TaperedCapsule.Location + TaperedCapsule.Rotation.GetAxisZ() * TaperedCapsule.Length * -0.5f;
 		
-		//const float DistSquared = FMath::PointDistToSegmentSquared(Bone.Location, StartPoint, EndPoint);
+		
 		FVector ContactPoint = FVector::ZeroVector;
 		FVector ContactNormal = FVector::ZeroVector;
 		float signedDist = 0.f;
 
-		TaperedCapsule.FindClosestPoint(Bone.Location, Bone.PhysicsSettings.Radius, ContactPoint, ContactNormal, signedDist);
-
-		const float LimitDistance = Bone.PhysicsSettings.Radius + TaperedCapsule.StartRadius;
-		if (TaperedCapsule.Distance < LimitDistance )
-		{
-			FVector ClosestPoint = FMath::ClosestPointOnSegment(Bone.Location, StartPoint, EndPoint);
-			Bone.Location = ClosestPoint + (Bone.Location - ClosestPoint).GetSafeNormal() * LimitDistance;
+		TaperedCapsule.FindClosestPoint(Bone.Location, ContactPoint, ContactNormal, signedDist);
+		const float DistSquared = FMath::PointDistToSegmentSquared(Bone.Location, StartPoint, EndPoint);
+		//const float LimitDistance = Bone.PhysicsSettings.Radius + TaperedCapsule.StartRadius;
+		if (signedDist < Bone.PhysicsSettings.Radius)
+		{			
+			Bone.Location = ContactPoint + ContactNormal * Bone.PhysicsSettings.Radius;
 		}
-		
-		if (TaperedCapsule.Distance < LimitDistance)
-		{
-			FVector ClosestPoint = FMath::ClosestPointOnSegment(Bone.Location, StartPoint, EndPoint);
-			Bone.Location = ClosestPoint + (Bone.Location - ClosestPoint).GetSafeNormal() * LimitDistance;
-		}
-		
-
 	}
 }
 void FAnimNode_KawaiiPhysics::AdjustByPlanerCollision(FKawaiiPhysicsModifyBone& Bone, TArray<FPlanarLimit>& Limits)
