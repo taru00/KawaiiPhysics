@@ -83,6 +83,12 @@ void UKawaiiPhysicsLimitsDataAsset::Sync()
 		CapsuleLimits.Add(Data.Convert());
 	}
 
+	TaperedCapsuleLimits.Empty();
+	for (FTaperedCapsuleLimitData& Data : TaperedCapsuleLimitsData)
+	{
+		TaperedCapsuleLimits.Add(Data.Convert());
+	}
+
 	PlanarLimits.Empty();
 	for (FPlanarLimitData& Data : PlanarLimitsData)
 	{
@@ -99,6 +105,14 @@ void UKawaiiPhysicsLimitsDataAsset::PostEditChangeProperty(struct FPropertyChang
 		if (PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
 		{
 			SphericalLimitsData[PropertyChangedEvent.GetArrayIndex(PropertyName.ToString())].Guid = FGuid::NewGuid();
+		}
+	}
+	else if (PropertyName == FName(TEXT("TaperedCapsuleLimitsData")))
+	{
+		if (PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
+		{
+			TaperedCapsuleLimitsData[PropertyChangedEvent.GetArrayIndex(PropertyName.ToString())].Guid = FGuid::NewGuid();
+
 		}
 	}
 	else if (PropertyName == FName(TEXT("CapsuleLimitsData")))

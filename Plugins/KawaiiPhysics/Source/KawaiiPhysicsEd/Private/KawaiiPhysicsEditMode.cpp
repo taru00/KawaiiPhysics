@@ -51,6 +51,7 @@ void FKawaiiPhysicsEditMode::EnterMode(UAnimGraphNode_Base* InEditorNode, FAnimN
 
 	GraphNode->Node.SphericalLimitsData = RuntimeNode->SphericalLimitsData;
 	GraphNode->Node.CapsuleLimitsData = RuntimeNode->CapsuleLimitsData;
+	GraphNode->Node.TaperedCapsuleLimitsData = RuntimeNode->TaperedCapsuleLimitsData;
 	GraphNode->Node.PlanarLimitsData = RuntimeNode->PlanarLimitsData;
 
 	NodePropertyDelegateHandle = GraphNode->OnNodePropertyChanged().AddSP(this, &FKawaiiPhysicsEditMode::OnExternalNodePropertyChange);
@@ -90,6 +91,7 @@ void FKawaiiPhysicsEditMode::Render(const FSceneView* View, FViewport* Viewport,
 	{
 		RenderSphericalLimits(PDI);
 		RenderCapsuleLimit(PDI);
+		RenderTaperedCapsuleLimit(PDI);
 		RenderPlanerLimit(PDI);
 		PDI->SetHitProxy(nullptr);
 
@@ -203,6 +205,67 @@ void FKawaiiPhysicsEditMode::RenderCapsuleLimit(FPrimitiveDrawInterface* PDI) co
 					FLinearColor::Black, Capsule.Radius, 0.5f* Capsule.Length + Capsule.Radius, 25, SDPG_World);
 
 				DrawCoordinateSystem(PDI, Capsule.Location, Capsule.Rotation.Rotator(), Capsule.Radius, SDPG_World + 1);
+
+			}
+		}
+	}
+}
+
+
+void FKawaiiPhysicsEditMode::RenderTaperedCapsuleLimit(FPrimitiveDrawInterface* PDI) const
+{
+	if (GraphNode->bEnableDebugDrawTaperedCapsuleLimit)
+	{
+		for (int32 i = 0; i < RuntimeNode->TaperedCapsuleLimits.Num(); i++)
+		{
+			auto& TaperedCapsule = RuntimeNode->TaperedCapsuleLimits[i];
+			if (TaperedCapsule.StartRadius > 0 && TaperedCapsule.EndRadius > 0 && TaperedCapsule.Length > 0)
+			{
+				FVector XAxis = TaperedCapsule.Rotation.GetAxisX();
+				FVector YAxis = TaperedCapsule.Rotation.GetAxisY();
+				FVector ZAxis = TaperedCapsule.Rotation.GetAxisZ();
+
+				PDI->SetHitProxy(new HKawaiiPhysicsHitProxy(ECollisionLimitType::TaperedCapsule, i));				
+				//DrawSphere(PDI, TaperedCapsule.Location + ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.StartRadius), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				//DrawSphere(PDI, TaperedCapsule.Location - ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.EndRadius), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+
+				DrawSphere(PDI, TaperedCapsule.BigPosWS, TaperedCapsule.Rotation.Rotator(), FVector(7), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				DrawSphere(PDI, TaperedCapsule.SmallPosWS, TaperedCapsule.Rotation.Rotator(), FVector(5), 24, 6, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				//DrawDirectionalArrow(class FPrimitiveDrawInterface* PDI, const FMatrix & ArrowToWorld, const FLinearColor & InColor, float Length, float ArrowSize, uint8 DepthPriority, float Thickness = 0.0f);
+				
+				DrawFlatArrow(PDI, TaperedCapsule.Location, FVector::ForwardVector, FVector::RightVector, FColor::Blue, TaperedCapsule.Length, 5.f, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(), SDPG_World);
+				//DrawWireChoppedCone(class FPrimitiveDrawInterface* PDI, const FVector & Base, const FVector & X, const FVector & Y, const FVector & Z, 
+				//const FLinearColor & Color, double Radius, double TopRadius, double HalfHeight, int32 NumSides, uint8 DepthPriority);
+				
+				DrawWireChoppedCone(PDI, TaperedCapsule.Location, XAxis, YAxis, ZAxis,
+					FLinearColor::Black, TaperedCapsule.EndRadius, TaperedCapsule.StartRadius, 0.5f * TaperedCapsule.Length, 25, SDPG_World);
+
+				DrawCoordinateSystem(PDI, TaperedCapsule.Location, TaperedCapsule.Rotation.Rotator(), TaperedCapsule.StartRadius, SDPG_World + 1);
+
+			}
+		}
+
+		for (int32 i = 0; i < RuntimeNode->TaperedCapsuleLimitsData.Num(); i++)
+		{
+			auto& TaperedCapsule = RuntimeNode->TaperedCapsuleLimitsData[i];
+			if (TaperedCapsule.StartRadius > 0 && TaperedCapsule.Length > 0)
+			{
+				FVector XAxis = TaperedCapsule.Rotation.GetAxisX();
+				FVector YAxis = TaperedCapsule.Rotation.GetAxisY();
+				FVector ZAxis = TaperedCapsule.Rotation.GetAxisZ();
+
+				PDI->SetHitProxy(new HKawaiiPhysicsHitProxy(ECollisionLimitType::TaperedCapsule, i, true));
+				DrawCylinder(PDI, TaperedCapsule.Location, XAxis, YAxis, ZAxis, TaperedCapsule.StartRadius, 0.5f * TaperedCapsule.Length, 25,
+					GEngine->ConstraintLimitMaterialZ->GetRenderProxy(), SDPG_World);
+				DrawSphere(PDI, TaperedCapsule.Location + ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.StartRadius),
+					24, 6, GEngine->ConstraintLimitMaterialZ->GetRenderProxy(), SDPG_World);
+				DrawSphere(PDI, TaperedCapsule.Location - ZAxis * TaperedCapsule.Length * 0.5f, TaperedCapsule.Rotation.Rotator(), FVector(TaperedCapsule.StartRadius),
+					24, 6, GEngine->ConstraintLimitMaterialZ->GetRenderProxy(), SDPG_World);
+
+				DrawWireCapsule(PDI, TaperedCapsule.Location, XAxis, YAxis, ZAxis,
+					FLinearColor::Black, TaperedCapsule.StartRadius, 0.5f * TaperedCapsule.Length + TaperedCapsule.StartRadius, 25, SDPG_World);
+
+				DrawCoordinateSystem(PDI, TaperedCapsule.Location, TaperedCapsule.Rotation.Rotator(), TaperedCapsule.StartRadius, SDPG_World + 1);
 
 			}
 		}
